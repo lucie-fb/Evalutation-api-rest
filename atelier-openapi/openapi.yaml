@@ -432,9 +432,7 @@ paths:
       operationId: addMyCartItem
       summary: Ajouter un lancer à mon panier actif
       description: |
-        Ajoute un lancer au panier en cours du voyageur connecté (déduit via le token).
-        Si l'utilisateur n'a pas de panier "pending", le serveur peut en créer un automatiquement.
-      # Pas de security: [] ici, car il faut être connecté pour avoir un panier "me"
+        Ajoute un lancer au panier en cours du voyageur connecté.
       requestBody:
         required: true
         content:
