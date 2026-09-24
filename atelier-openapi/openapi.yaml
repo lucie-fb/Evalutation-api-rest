@@ -203,33 +203,124 @@ paths:
                 $ref: '#/components/schemas/User'
         '401': { $ref: '#/components/responses/Unauthorized' }
 
-  # ==========================================================================
-  #  À VOUS — Le flux de réservation
-  #
-  #  Tout ce qui suit est à écrire. Le contrat métier distribué en fin de J2
-  #  fait foi : c'est lui qui dit quelles opérations existent, ce qu'elles
-  #  reçoivent et ce qu'elles renvoient. Les indications ci-dessous ne sont
-  #  que des repères — elles ne remplacent pas le contrat métier.
-  #
-  #  Deux choses à ne pas perdre de vue :
-  #    - Le mock tourne déjà (`docker compose up`). Écrivez une opération,
-  #      rejouez-la dans Bruno, voyez ce qui sort. N'attendez pas la fin.
-  #    - `spectral lint openapi.yaml` doit rester vert. Si le linter râle,
-  #      corrigez tout de suite : une erreur en cache trois.
-  # ==========================================================================
 
-  # ---- Découverte (public) -------------------------------------------------
 
-  # GET /cities
-  #   Rechercher une ville desservie, par filtre textuel.
-  #   Chaque ville du réseau possède une catapulte unique en son centre.
-  #   Opération PUBLIQUE : on cherche sans être connecté.
+  /cities/me:
+    get:
+      tags: [Découverte]
+      operationId: listCities
+      summary: Rechercher une ville desservie
+      description: |
+        Retourne les villes du réseau, filtrées par recherche textuelle. Chaque ville
+        possède une catapulte unique en son centre, qui sert à la fois de point de
+        lancement et de zone de réception.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Filtre textuel sur le nom de la ville. Insensible à la casse et aux accents.
+          schema:
+            type: string
+          example: dij
+        - name: limit
+          in: query
+          required: false
+          description: Nombre maximum de villes retournées.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Villes correspondant au filtre. Tableau vide si aucune.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+              example:
+                - id: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
+                  name: Dijon
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   # POST /trips/search
   #   Rechercher les lancers reliant deux villes à une date donnée, pour un
   #   nombre de places. Tous les lancers sont directs : aucune correspondance,
   #   aucun itinéraire composé. Sans lancer direct ce jour-là, la liste est vide.
   #   Opération PUBLIQUE.
+
+  /trips/search/me:
+    post:
+      tags: [Découverte]
+      operationId: TripSummary
+      summary: Rechercher une ville desservie
+      description: |
+       Un lancer tel qu'il apparaît dans une liste de résultats.
+      security: []
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example:  1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        - name: departCity
+          in: query
+          required: false
+          description: ville de départ
+          schema:
+            type: string
+            example: Dijon
+        - name: arriveeCity
+          in: query
+          required: false
+          description: ville d'arrivee
+          schema:
+            type: string
+            example: Marseille
+        - name: departTime
+          in: query
+          required: false
+          description: ville de départ
+          schema:
+            type: string
+            example: Dijon
+        - name: time
+          in: query
+          required: false
+          description: ville de départ
+          schema:
+            type: string
+            example: Dijon
+        - name: prix
+          in: query
+          required: false
+          description: ville de départ
+          schema:
+            type: number
+            format: float
+            example: 56.00
+      responses:
+        '200':
+          description: Villes correspondant au filtre. Tableau vide si aucune.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+              example:
+                - id: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
+                  name: Dijon
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+
 
   # GET /trips/{id}
   #   Consulter le détail d'un lancer. Le détail porte ce qu'une liste de
@@ -495,26 +586,125 @@ components:
     TripSummary:
       type: object
       description: Un lancer tel qu'il apparaît dans une liste de résultats.
-      required: [id, email, createdAt]
+      required: [id, departCity, arriveeCity, departTime, time, prix]
       properties:
         id:
           type: string
           format: uuid
           example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
-        email:
+        departCity:
           type: string
-          format: email
-          example: bob@example.com
-        firstName:
+          example: Dijon
+        arriveeCity:
           type: string
-          example: Bob
-        lastName:
+          example: Marseille
+        departTime:
           type: string
-          example: Morane
+          format: date-time
+          example: '2027-02-14T10:03:00Z'
+        time:
+          type: integer
+          example: 45
+        prix:
+          type: number
+          format: float
+          example: 56.00
+        
+    TripDetail:
+      allOf:
+        - type: object
+        - $ref: '#/components/schemas/TripSummary'
+          description: détails lancer choisi.
+          required: [id, franchiseMasse, catapultModel, instructions]
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+            franchiseMasse:
+              type: integer
+              example: 23
+            catapultModel:
+              type: string
+              description: Le modèle d'engin assurant le lancer
+              example: CatapulteX32
+            instructions:
+              type: string
+              description: Consignes spécifiques à suivre avant le lancer
+              example: Arriver 5 minutes avant le tir.
+
+    Cart:
+      type: object
+      description: Un panier de réservation.
+      required: [id, status, items, total, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        status:
+          type: string
+          enum : 
+            - rempli
+            - vide
+          example: vide
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total:
+          type: number
+          format: float
+          example: 156.00
         createdAt:
           type: string
           format: date-time
           example: '2027-02-14T10:03:00Z'
+
+    CartItem:
+      type: object
+      description: Un panier de réservation.
+      required: [id, lancer, nbDePlaces, total]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        lancer:
+          $ref: '#/components/schemas/TripSummary'
+        nbDePlaces:
+          type: number
+          minimum: 1
+          description: nombre de places réservées
+          example: 4
+        sousTotal:
+          type: number
+          format: float
+          description: sous total calculé
+          example: 156.00
+  
+    Ticket:
+      type: object
+      description: Un droit à embarquer sur un lancer.
+      required: [id, lancer, prix, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        lancer:
+          $ref: '#/components/schemas/TripSummary'
+        price:
+          type: number
+          format: float
+          example: 56.00
+        createdAt:
+          type: string
+          format: date-time
+          description: La date d'émission du billet
+          example: '2027-02-14T10:03:00Z'
+
+      
 
 
     # ==========================================================================
@@ -530,13 +720,18 @@ components:
     #    - Une valeur n'a-t-elle qu'un jeu de possibilités connu d'avance ?
     # ==========================================================================
 
-    # City
+     # City
     #   Une ville desservie. Chaque ville possède une catapulte unique en son
     #   centre, qui sert à la fois de point de lancement et de réception.
 
     # TripSummary
     #   Un lancer tel qu'il apparaît dans une liste de résultats : de quoi
     #   choisir, pas de quoi préparer son voyage.
+
+    # TripDetail
+    #   Le même lancer, consulté seul. Il ajoute ce dont on a besoin une fois
+    #   qu'on l'a choisi — notamment la franchise de masse, qui n'est pas ici
+    #   une limite commerciale mais balistique.
 
     # TripDetail
     #   Le même lancer, consulté seul. Il ajoute ce dont on a besoin une fois
