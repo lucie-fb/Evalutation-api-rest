@@ -253,58 +253,44 @@ paths:
   #   aucun itinéraire composé. Sans lancer direct ce jour-là, la liste est vide.
   #   Opération PUBLIQUE.
 
-  /trips/search/me:
+  /trips/search:
     post:
       tags: [Découverte]
-      operationId: TripSummary
-      summary: Rechercher une ville desservie
+      operationId: searchTrips
+      summary: Recherche des lancers
       description: |
-       Un lancer tel qu'il apparaît dans une liste de résultats.
+        Rechercher les lancers reliant deux villes à une date donnée, pour un
+        nombre de places. Tous les lancers sont directs : aucune correspondance,
+        aucun itinéraire composé. Sans lancer direct ce jour-là, la liste est vide.
       security: []
-      parameters:
-        - name: id
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-            example:  1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
-        - name: departCity
-          in: query
-          required: false
-          description: ville de départ
-          schema:
-            type: string
-            example: Dijon
-        - name: arriveeCity
-          in: query
-          required: false
-          description: ville d'arrivee
-          schema:
-            type: string
-            example: Marseille
-        - name: departTime
-          in: query
-          required: false
-          description: ville de départ
-          schema:
-            type: string
-            example: Dijon
-        - name: time
-          in: query
-          required: false
-          description: ville de départ
-          schema:
-            type: string
-            example: Dijon
-        - name: prix
-          in: query
-          required: false
-          description: ville de départ
-          schema:
-            type: number
-            format: float
-            example: 56.00
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [departCityId, arriveeCityId, date, nbDePlaces]
+              properties:
+                departCityId:
+                  type: string
+                  format: uuid
+                  description: Identifiant de la ville de départ.
+                  example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+                arriveeCityId:
+                  type: string
+                  format: uuid
+                  description: Identifiant de la ville d'arrivée.
+                  example: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
+                date:
+                  type: string
+                  format: date
+                  description: Date de départ souhaitée.
+                  example: '2027-02-14'
+                nbDePlaces:
+                  type: integer
+                  minimum: 1
+                  description: Nombre de places à réserver.
+                  example: 2
       responses:
         '200':
           description: Villes correspondant au filtre. Tableau vide si aucune.
@@ -327,25 +313,175 @@ paths:
   #   résultats n'a aucune raison de transporter pour chacune de ses lignes.
   #   Opération PUBLIQUE.
 
+  /trips/me:
+    get:
+      tags: [Découverte]
+      operationId: searchTripsDetails
+      summary: Affichage en détail  d'une ville desservie
+      description: |
+        Consulter le détail d'un lancer. Le détail porte ce qu'une liste de
+        résultats n'a aucune raison de transporter pour chacune de ses lignes.
+      security: []
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: identifiant
+          schema:
+            type: string
+            format: uuid
+            example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        - name: franchiseMasse
+          in: query
+          required: false
+          description: Franchise de la Masse
+          schema:
+            type: integer
+            example: 23
+        - name: catapultModel
+          in: query
+          required: false
+          description: Modèle de la catapulte
+          schema:
+            type: string
+            description: Le modèle d'engin assurant le lancer
+            example: CatapulteX32
+        - name: instructions
+          in: query
+          required: false
+          description: instructions lors du lancer
+          schema:
+            type: string
+            description: Consignes spécifiques à suivre avant le lancer
+            example: Arriver 5 minutes avant le tir.
+      responses:
+        '200':
+          description: Les détails complets du lancer demandé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetail'
+              example:
+                id: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+                departCity: Dijon
+                arriveeCity: Marseille
+                departTime: '2027-02-14T10:03:00Z'
+                time: 45
+                prix: 56.00
+                franchiseMasse: 23
+                catapultModel: CatapulteX32
+                instructions: Arriver 5 minutes avant le tir.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   # ---- Panier (authentifié) ------------------------------------------------
 
   # POST /carts
   #   Ouvrir un panier vide. C'est ici que la connexion devient nécessaire :
   #   la découverte est libre, la réservation est nominative.
 
+  /carts:
+    post:
+      tags: [Panier]
+      operationId: createCart
+      summary: Ouvrir un panier vide
+      description: |
+        Ouvrir un panier vide. C'est ici que la connexion devient nécessaire :
+        la découverte est libre, la réservation est nominative.
+      responses:
+        '201':
+          description: Panier créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      tags: [Panier]
+      operationId: getActiveCart
+      summary: Récupérer le panier actif
+      description: |
+        Récupérer le panier actif du voyageur connecté (statut `pending`).
+        Si le voyageur n'a aucun panier actif, renvoie 204 No Content.
+      responses:
+        '200':
+          description: Le panier actif du voyageur.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '204':
+          description: Aucun panier actif en ce moment (état normal).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   # GET /carts
   #   Récupérer le panier actif du voyageur connecté. Un voyageur n'a qu'un
   #   panier actif à la fois — et parfois aucun, ce qui est un état normal
   #   et non une erreur. Réfléchissez à ce que ça implique pour la réponse.
+
+
 
   # POST /carts/{id}/items
   #   Ajouter un lancer au panier, avec un nombre de places.
   #   L'écran de panier doit pouvoir se peindre à partir de cette seule
   #   réponse, sans second appel. Le total est calculé par le serveur.
 
+  /carts/me/items:
+    post:
+      tags: [Découverte]
+      operationId: TripSummary
+      summary: Recherche des lancers
+      description: |
+       Un lancer tel qu'il apparaît dans une liste de résultats.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [departCityId, arriveeCityId, date, nbDePlaces]
+              properties:
+                departCityId:
+                  type: string
+                  format: uuid
+                  description: Identifiant de la ville de départ.
+                  example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+                arriveeCityId:
+                  type: string
+                  format: uuid
+                  description: Identifiant de la ville d'arrivée.
+                  example: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
+                date:
+                  type: string
+                  format: date
+                  description: Date de départ souhaitée.
+                  example: '2027-02-14'
+                nbDePlaces:
+                  type: integer
+                  minimum: 1
+                  description: Nombre de places à réserver.
+                  example: 2
+      responses:
+        '200':
+          description: Villes correspondant au filtre. Tableau vide si aucune.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+              example:
+                - id: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
+                  name: Dijon
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
   # DELETE /carts/{id}/items/{itemId}
   #   Retirer une ligne du panier. Si c'était la dernière, le panier disparaît
   #   côté serveur — le voyageur n'a rien à faire de plus.
+
+
 
   # POST /carts/{id}/pay
   #   Payer le panier : il passe de `pending` à `paid` et les billets sont
@@ -354,12 +490,77 @@ paths:
   #   L'écran de confirmation doit pouvoir se peindre à partir de cette seule
   #   réponse. Que se passe-t-il si le panier est déjà payé ?
 
+  /carts/me/pay:
+    post:
+      tags: [Panier]
+      operationId: payCart
+      summary: Payer le panier
+      description: |
+        Payer le panier : il passe de `pending` à `paid` et les billets sont émis.
+        Aucune donnée bancaire ne circule : on déclare un moyen de paiement.
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: identifiant
+          schema:
+            type: string
+            format: uuid
+            example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMethod]
+              properties:
+                paymentMethod:
+                  type: string
+                  enum: [CB, PAYPAL, VIREMENT]
+                  example: CB
+      responses:
+        '200':
+          description: Paiement validé. Renvoie le panier à l'état payé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Conflit - Le panier est déjà payé ou obsolète.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
   # ---- Billets (authentifié) -----------------------------------------------
 
   # GET /tickets
   #   Lister les billets du voyageur connecté. Un billet est un droit à
   #   embarquer sur un lancer : il n'est pas nominatif, il vaut pour une
   #   place et non pour une personne désignée.
+
+  /tickets:
+    get:
+      tags: [Compte]
+      operationId: listTickets
+      summary: Lister ses billets
+      description: |
+        Lister les billets du voyageur connecté. Un billet vaut pour une
+        place sur un lancer donné.
+      responses:
+        '200':
+          description: Liste des billets possédés.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
 components:
   # ==========================================================================
