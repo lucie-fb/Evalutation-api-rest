@@ -83,3 +83,5 @@ Vous pouvez importer `openapi.yaml` dans Bruno pour générer votre collection :
 requêtes viennent de votre propre contrat.
 
 N'écrivez pas les douze opérations avant de tester la première.
+
+Utilisation de l'ia pour la compréhension et la correction de certaines erreurs

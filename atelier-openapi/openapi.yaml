@@ -313,7 +313,7 @@ paths:
   #   résultats n'a aucune raison de transporter pour chacune de ses lignes.
   #   Opération PUBLIQUE.
 
-  /trips/me:
+  /trips/{id}:
     get:
       tags: [Découverte]
       operationId: searchTripsDetails
@@ -324,13 +324,11 @@ paths:
       security: []
       parameters:
         - name: id
-          in: query
-          required: false
-          description: identifiant
+          in: path
+          required: true
           schema:
             type: string
-            format: uuid
-            example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+          description: L'ID du panier.
         - name: franchiseMasse
           in: query
           required: false
@@ -426,13 +424,20 @@ paths:
   #   L'écran de panier doit pouvoir se peindre à partir de cette seule
   #   réponse, sans second appel. Le total est calculé par le serveur.
 
-  /carts/me/items:
+  /carts/{id}/items:
     post:
       tags: [Panier]
-      operationId: addMyCartItem
+      operationId: CartItem
       summary: Ajouter un lancer à mon panier actif
       description: |
         Ajoute un lancer au panier en cours du voyageur connecté.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: L'ID du panier.
       requestBody:
         required: true
         content:
@@ -463,7 +468,7 @@ paths:
   #   L'écran de confirmation doit pouvoir se peindre à partir de cette seule
   #   réponse. Que se passe-t-il si le panier est déjà payé ?
 
-  /carts/me/pay:
+  /carts/{id}/pay:
     post:
       tags: [Panier]
       operationId: payCart
@@ -473,13 +478,11 @@ paths:
         Aucune donnée bancaire ne circule : on déclare un moyen de paiement.
       parameters:
         - name: id
-          in: query
-          required: false
-          description: identifiant
+          in: path
+          required: true
           schema:
             type: string
-            format: uuid
-            example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+          description: L'ID du panier.
       requestBody:
         required: true
         content:
@@ -838,7 +841,7 @@ components:
     CartItem:
       type: object
       description: Un panier de réservation.
-      required: [id, lancer, nbDePlaces, total]
+      required: [id, lancer, nbDePlaces, sousTotal]
       properties:
         id:
           type: string
