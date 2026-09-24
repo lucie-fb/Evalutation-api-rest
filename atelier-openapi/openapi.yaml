@@ -428,54 +428,29 @@ paths:
 
   /carts/me/items:
     post:
-      tags: [Découverte]
-      operationId: TripSummary
-      summary: Recherche des lancers
+      tags: [Panier]
+      operationId: addMyCartItem
+      summary: Ajouter un lancer à mon panier actif
       description: |
-       Un lancer tel qu'il apparaît dans une liste de résultats.
-      security: []
+        Ajoute un lancer au panier en cours du voyageur connecté (déduit via le token).
+        Si l'utilisateur n'a pas de panier "pending", le serveur peut en créer un automatiquement.
+      # Pas de security: [] ici, car il faut être connecté pour avoir un panier "me"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [departCityId, arriveeCityId, date, nbDePlaces]
-              properties:
-                departCityId:
-                  type: string
-                  format: uuid
-                  description: Identifiant de la ville de départ.
-                  example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
-                arriveeCityId:
-                  type: string
-                  format: uuid
-                  description: Identifiant de la ville d'arrivée.
-                  example: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
-                date:
-                  type: string
-                  format: date
-                  description: Date de départ souhaitée.
-                  example: '2027-02-14'
-                nbDePlaces:
-                  type: integer
-                  minimum: 1
-                  description: Nombre de places à réserver.
-                  example: 2
+              $ref: '#/components/schemas/CartItem'
       responses:
         '200':
-          description: Villes correspondant au filtre. Tableau vide si aucune.
+          description: Lancer ajouté. Renvoie le panier complet et mis à jour.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/City'
-              example:
-                - id: 3f2a1b8c-5d4e-4f6a-9b8c-1d2e3f4a5b6c
-                  name: Dijon
+                $ref: '#/components/schemas/Cart'
         '400': { $ref: '#/components/responses/BadRequest' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # DELETE /carts/{id}/items/{itemId}
   #   Retirer une ligne du panier. Si c'était la dernière, le panier disparaît
